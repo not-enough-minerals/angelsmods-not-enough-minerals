@@ -19,7 +19,7 @@ if angelsmods.addons.storage.silos or angelsmods.addons.storage.oresilos then
       icon = "__angelsaddons-storage__/graphics/icons/silo.png",
       icon_size = 32,
       flags = { "placeable-neutral", "player-creation" },
-      collision_mask = angelsmods.functions.set_building_collision_mask('container', {'elevated_rail'}),
+      collision_mask = {layers={item=true, meltable=true, object=true, player=true, water_tile=true, is_object=true, is_lower_object=true}},
       minable = { mining_time = 1, result = "silo" },
       max_health = 300,
       corpse = "small-remnants",
@@ -35,7 +35,7 @@ if angelsmods.addons.storage.silos or angelsmods.addons.storage.oresilos then
       selection_box = { { -2, -2 }, { 2, 2 } },
       fast_replaceable_group = "silo",
       inventory_size = 256,
-      vehicle_impact_sound = { filename = "__base__/sound/car-metal-impact.ogg", volume = 0.65 },
+      impact_category = "metal",
       picture = {
         filename = "__angelsaddons-storage__/graphics/entity/silo.png",
         priority = "extra-high",
