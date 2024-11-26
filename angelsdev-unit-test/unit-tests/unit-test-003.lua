@@ -18,7 +18,7 @@ local unit_test_003 = function()
   local item_prototypes = prototypes.item
   local fluid_prototypes = prototypes.fluid
   for recipe_name, recipe_data in pairs(recipe_prototypes) do
-    if not recipe_data.hidden and not recipes_to_ignore[recipe_name] then -- only test recipes that are not hidden or ignored
+    if not recipe_data.hidden and not recipe_data.hide_from_player_crafting and not recipes_to_ignore[recipe_name] then -- only test recipes that are not hidden or ignored
       local recipe_ingredients = recipe_data.ingredients
       for _, recipe_ingredient in pairs(recipe_ingredients) do
         if recipe_ingredient.type == "item" then
