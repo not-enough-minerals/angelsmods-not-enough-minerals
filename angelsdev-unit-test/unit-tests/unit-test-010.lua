@@ -27,11 +27,7 @@ local function process_tech(tech)
       local skip = false
 
       -- Skip unbarelling recipes
-      if
-        recipe.name ~= "empty-barrel"
-        and string.sub(recipe.name, 1, 6) == "empty-"
-        and string.sub(recipe.name, -7, -1) == "-barrel"
-      then
+      if recipe.subgroup.name == "empty-barrel" then
         skip = true
       end
 
@@ -58,7 +54,7 @@ local function process_tech(tech)
       skip = false
 
       -- Skip barelling recipes
-      if string.sub(recipe.name, 1, 5) == "fill-" and string.sub(recipe.name, -7, -1) == "-barrel" then
+      if recipe.subgroup.name == "fill-barrel" then
         skip = true
       end
 
@@ -206,8 +202,14 @@ local function process_tech(tech)
           end
         end
         if not result.categories[recipe.category] then
-          recipe.missing_category = true
-          found_all_prerequisites = false
+          -- Ignore parameter recipes
+          if recipe.category == "parameters" then
+            recipe.missing_category = false
+          else do
+            recipe.missing_category = true
+            found_all_prerequisites = false
+            end
+          end
         end
 
         if found_all_prerequisites then
@@ -322,6 +324,13 @@ local function make_starting_unlocks()
     end
   end
 
+  -- Include fluid mining results from tiles (fluid mining results are no longer tracked by offshore pumps in 2.0)
+  for tile_name, tile in pairs(prototypes.tile) do
+    if tile.fluid then
+      starting_unlocks.fluids[tile.fluid.name] = true
+    end
+  end
+
   local starting_tech = { name = "starting", prerequisites = {}, effects = {} }
 
   local recipe_filters = {}
@@ -343,6 +352,10 @@ local function make_starting_unlocks()
     end
   end
 
+  -- Add "crafting" and "smelting" to starting_unlocks.categories
+  starting_unlocks.categories["crafting"] = true
+  starting_unlocks.categories["smelting"] = true
+
   starting_unlocks = process_tech(starting_tech)
 end
 
@@ -358,10 +371,13 @@ local function add_ignores()
     skip_test = true
   end
 
-  -- base game exception
-  ignored_unlocks["artillery"] = {
+  -- base game exception (base game engine units don't actually have assembling machines as a prereq, but require them to be crafted)
+  ignored_unlocks["engine"] = {
     items = {
-      ["concrete"] = true,
+      ["engine-unit"] = true,
+    },
+    categories = {
+      ["advanced-crafting"] = true,
     },
   }
 
