@@ -217,18 +217,6 @@ local function calculate_tech_bonus_effects()
   }
 end
 
--- tracks which technologies enable the player to mine items that trigger technology unlocks (the ability to mine some resources 
--- like crude-oil is not tracked in research prototypes, so we need to do it ourselves)
-local mining_unlock_techs = {}
-local function calculate_mining_unlock_techs()
-  -- vanilla
-  mining_unlock_techs = {
-    -- maps resources to the techs that enable mining them
-    ["uranium-ore"] = "uranium-mining",
-    ["crude-oil"] = "oil-gathering"
-  }
-end
-
 local function tech_hidden(tech_prototype)
   return tech_prototype.hidden or not (tech_prototype.enabled or tech_prototype.visible_when_disabled)
 end
@@ -277,49 +265,12 @@ end
 local function calculate_tech_ingredient_level(technology_prototype)
   local tech_ingredient_level = 0
 
-  -- If this technology is unlocked by a trigger condition we need to check the technologies that allows the player to meet 
-  -- that trigger condition
+  -- If this technology is unlocked by a trigger condition then use the max level of it's prerequisite techs
   if technology_prototype.research_trigger then
-    -- If this technology is unlocked by crafting an item or launching an item to space we need to check the level of the technology 
-    -- that unlocks that item
-    if technology_prototype.research_trigger.type == "craft-item" or technology_prototype.research_trigger.type == "send-item-to-orbit" then
-      local trigger_item = technology_prototype.research_trigger.item.name 
-      
-      -- Find the technology that unlocks trigger_item
-      for _, crafting_trigger_tech in pairs(prototypes.technology) do
-        for _, tech_effect in pairs(crafting_trigger_tech.effects) do
-          if tech_effect.type == "unlock-recipe" and tech_effect.recipe == trigger_item then
-            -- Compute the level of the tech that unlocks trigger_item
-            local crafting_trigger_tech_unlock_level = calculate_tech_ingredient_level(crafting_trigger_tech)
-            if crafting_trigger_tech_unlock_level < 0 then
-              unit_test_functions.print_msg(
-                string.format("Failed to determine technology effect level for %q.", crafting_trigger_tech.name)
-              )
-              return -1 -- invalid tech_unlock_level
-            else
-              tech_ingredient_level = math.max(tech_ingredient_level, crafting_trigger_tech_unlock_level) -- increase tech level
-            end
-          end
-        end
-      end
-
-    -- If this technology is unlocked by mining something we need to check the level of the technology that enables mining that item
-    elseif technology_prototype.research_trigger.type == "mine-entity" then
-      local mining_trigger_item = technology_prototype.research_trigger.entity
-      local mining_trigger_tech = prototypes.technology[mining_unlock_techs[mining_trigger_item]]
-
-      -- Compute the level of the tech that unlocks crafting_trigger_item
-      local crafting_trigger_tech_unlock_level = calculate_tech_ingredient_level(mining_trigger_tech)
-      if crafting_trigger_tech_unlock_level < 0 then
-        unit_test_functions.print_msg(
-          string.format("Failed to determine technology effect level for %q.", mining_trigger_tech.name)
-        )
-        return -1 -- invalid tech_unlock_level
-      else
-        tech_ingredient_level = math.max(tech_ingredient_level, crafting_trigger_tech_unlock_level) -- increase tech level
-      end
+    for _, prerequisite in pairs(technology_prototype.prerequisites) do
+      local prereq_level = calculate_tech_ingredient_level(prerequisite)
+      tech_ingredient_level = math.max(tech_ingredient_level, prereq_level)
     end
-
   -- If this technology is unlocked using research packs then check their tech levels
   else
     for _, tech_ingredient in pairs(technology_prototype.research_unit_ingredients) do
@@ -355,7 +306,6 @@ local unit_test_006 = function()
   local unit_test_result = unit_test_functions.test_successful
   calculate_tech_bonus_effects()
   calculate_science_pack_level()
-  calculate_mining_unlock_techs()
 
   local tech_prototypes = prototypes.technology
   local tech_ingredient_levels = {} -- the technology level defined by the research ingredients

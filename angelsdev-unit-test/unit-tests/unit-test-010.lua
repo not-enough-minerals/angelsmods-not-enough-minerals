@@ -128,6 +128,41 @@ local function process_tech(tech)
     end
   end
 
+  -- Add trigger tech prerequisites
+  if tech.research_trigger and (tech.research_trigger.type == "craft-item" or tech.research_trigger.type == "craft-fluid") then
+    if prototypes.item[tech.research_trigger.item] or prototypes.fluid[tech.research_trigger.fluid] then
+      recipes["__TECH__"..tech.name] = {
+        processed = false,
+        ingredients = { items = {}, fluids = {} },
+        products = { items = {}, fluids = {} },
+        category = "parameters",
+        categories = {},
+      }
+      local resources = prototypes.get_entity_filtered({
+        { filter = "name", mode = "and", name = tech.research_trigger.item or tech.research_trigger.fluid },
+        { filter = "minable", mode = "and" },
+        { filter = "autoplace", mode = "and" },
+      })
+      local drills = prototypes.get_entity_filtered({
+        { filter = "type", mode = "and", type = "mining-drill" }
+      })
+      for _, resource in pairs(resources) do
+        for _, drill in pairs(drills) do
+          for category, _ in pairs(drill.resource_categories) do
+            if resource.resource_category == category then
+              recipes["__TECH__"..tech.name].ingredients.items[drill.name] = true
+
+              -- If the entity requires a fluid to mine, make sure this is a prerequisite too
+              if resource.mineable_properties.required_fluid then
+                recipes["__TECH__"..tech.name].ingredients.fluids[resource.mineable_properties.required_fluid] = true
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
   -- Get unlocks from prerequisite techs
   for prereq_name, _ in pairs(tech.prerequisites) do
     local prereq = processed_techs[prereq_name]
